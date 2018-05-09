@@ -11,12 +11,12 @@ Adapted from the "ClassLoader Mouse" demo, this project integrates the LUFA libr
 
 Current functionality includes:
 - Mouse navigation using the North, South, East and West switches
-- Left-clicking using a short press of the center switch
-- Right-clicking using a long press of the center switch
-- Additive delta for faster movement when a direction is maintained
+- Left-clicking using a (very) short press of the center switch
+- Right-clicking using a (normal/long) press of the center switch
 
 Ideas for extensions:
 - Scrolling
-- Improve smoothness of navigation (e.g. hold button to maintain motion)
+- Improve clicking (left clicks frequently mistaken as right clicks, perhaps due to scheduling times in os_add_task)
+- Add a timer to reset delta after stationary time, for more natural navigation
 
 
