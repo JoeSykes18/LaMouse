@@ -60,16 +60,20 @@ USB_ClassInfo_HID_Device_t Mouse_HID_Interface =
 	};
 
 /* Current magnitude of mouse movement */
-int mouse_delta = 5;
+int mouse_delta = 0;
 
 /* Previous direction of mouse movement */
-int direction = _BV(SWN);
+uint8_t direction = _BV(SWN);
+
+/* Center button status - 1 for short, 2 for long */
+uint8_t centre_pressed = 0;
 
 int position = 0;
 
 int mouse_task(int state);
 int ruota_task(int state);
-void update_magnitude(uint8_t dir);
+void update_mouse_delta(uint8_t dir);
+void check_switches(void);
 
 int main(void)
 {
@@ -77,7 +81,7 @@ int main(void)
 	mouse_init();
 
 	os_add_task( mouse_task,	10,	1);
-	os_add_task( ruota_task, 10,1);
+	os_add_task( ruota_task, 	20,	1);
 
 	sei();
 
@@ -85,12 +89,49 @@ int main(void)
 }
 
 int ruota_task(int state) {
-	/* scan switches for input */
+	/* scan switches to read buttons */
 	scan_switches();
+
+	/* determine any mouse direction from input */
+	check_switches();
 
 	/* get rotary encoder position, for later use in scrolling? */
 	position += os_enc_delta();
 	return state;
+}
+
+void check_switches(void) {
+	bool has_direction = false;
+	/* Check if north or south components should be added to the direction */
+	if (get_switch_state(_BV(SWN))) {
+		direction |= _BV(SWN);
+		has_direction = true;
+	} else if (get_switch_state(_BV(SWS))) {
+		direction |= _BV(SWS);
+		has_direction = true;		
+	}
+
+	/* Check if east or west components should be added to the direction */
+	if (get_switch_state(_BV(SWW))) {
+		direction |= _BV(SWW);
+		has_direction = true;		
+	} else if (get_switch_state(_BV(SWE))) {
+		direction |= _BV(SWE);
+		has_direction = true;		
+	}
+
+	/* Increment counter if centre pressed, reset otherwise */
+	if (get_switch_long(_BV(SWC))) {
+		centre_pressed = 2;
+	} else if (get_switch_short(_BV(SWC))) {
+		centre_pressed = 1;
+	}
+
+	/* clear direction if there was no input */
+	if (!has_direction) {
+		direction = 0;
+		mouse_delta = 0;
+	}
 }
 
 /* Wrapper function for RIOS task (Mouse USB) */
@@ -178,59 +219,52 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 {
 	USB_MouseReport_Data_t* MouseReport = (USB_MouseReport_Data_t*)ReportData;
 
-	if (get_switch_press(_BV(SWN))) {
-		display_string("Up ");
-		update_magnitude(_BV(SWN));
-
+	/* Assemble mouse report from current direction */
+	if (direction & _BV(SWN)) {
 		MouseReport->Y = -2 - mouse_delta;
-	} else if (get_switch_press(_BV(SWS))) {
-		display_string("Down ");
-		update_magnitude(_BV(SWS));
-
-	  	MouseReport->Y = 2 + mouse_delta;	
+		update_mouse_delta(SWN);
+	} else if (direction & _BV(SWS)) {
+		MouseReport->Y = 2 + mouse_delta;
+		update_mouse_delta(SWS);
 	}
 
-	if (get_switch_press(_BV(SWW))) {
-		display_string("Left ");
-		update_magnitude(_BV(SWW));
-
-	  	MouseReport->X = -2 - mouse_delta;
-	} else if (get_switch_press(_BV(SWE))) {
-		display_string("Right ");
-		update_magnitude(_BV(SWE));
-
-	  	MouseReport->X =  2 + mouse_delta;		
+	if (direction & _BV(SWW)) {
+		MouseReport->X = -2 - mouse_delta;
+		update_mouse_delta(SWW);
+	} else if (direction & _BV(SWE)) {
+		MouseReport->X = 2 + mouse_delta;
+		update_mouse_delta(SWE);
 	}
 
-	/* Left click */
-	if (get_switch_press(_BV(SWC))) {
-		display_string("Left-click ");
-	  	MouseReport->Button |= (1 << 0);		
-	}
-
-	/* Right click */
-	if (get_switch_rpt(_BV(SWC))) {
+	/* Check clicks */
+	if (centre_pressed == 2) {
 		display_string("Right-click ");
-	  	MouseReport->Button |= (1 << 1);		
-	}
+		MouseReport->Button |= (1 << 1);
+
+		centre_pressed = 0;
+	} else if (centre_pressed == 1) {
+		display_string("Left-click ");
+		MouseReport->Button |= (1 << 0);
+
+		centre_pressed = 0;	
+	} 
 
 	*ReportSize = sizeof(USB_MouseReport_Data_t);
 	return true;
 }
 
-/* Update mouse_delta of mouse movement with given direction */
-void update_magnitude(uint8_t dir) {
-	/* If direction maintained, increase mouse_delta (capped at 50) */
+/* Update magnitude of mouse movement with given direction */
+void update_mouse_delta(uint8_t dir) {
+	/* If direction maintained, increase mouse_delta (capped at 5) */
 	if (direction == dir) {
-		if (mouse_delta + 5 > 50) {
-			mouse_delta = 50;
+		if (mouse_delta + 1 > 5) {
+			mouse_delta = 5;
 		} else {
-			mouse_delta += 5;
+			mouse_delta++;
 		}
 	} else {
 		/* Reset mouse_delta because direction has changed */
-		mouse_delta = 5;
-		direction = dir;
+		mouse_delta = 0;
 	}
 }
 
