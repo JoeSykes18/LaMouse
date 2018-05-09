@@ -104,19 +104,27 @@ void check_switches(void) {
 	bool has_direction = false;
 	/* Check if north or south components should be added to the direction */
 	if (get_switch_state(_BV(SWN))) {
+		update_mouse_delta(SWN);
 		direction |= _BV(SWN);
+
 		has_direction = true;
 	} else if (get_switch_state(_BV(SWS))) {
+		update_mouse_delta(SWS);
 		direction |= _BV(SWS);
+
 		has_direction = true;		
 	}
 
 	/* Check if east or west components should be added to the direction */
 	if (get_switch_state(_BV(SWW))) {
+		update_mouse_delta(SWW);
 		direction |= _BV(SWW);
+
 		has_direction = true;		
 	} else if (get_switch_state(_BV(SWE))) {
+		update_mouse_delta(SWE);
 		direction |= _BV(SWE);
+
 		has_direction = true;		
 	}
 
@@ -221,19 +229,19 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 
 	/* Assemble mouse report from current direction */
 	if (direction & _BV(SWN)) {
+		
 		MouseReport->Y = -2 - mouse_delta;
-		update_mouse_delta(SWN);
 	} else if (direction & _BV(SWS)) {
-		MouseReport->Y = 2 + mouse_delta;
 		update_mouse_delta(SWS);
+		MouseReport->Y = 2 + mouse_delta;
 	}
 
 	if (direction & _BV(SWW)) {
-		MouseReport->X = -2 - mouse_delta;
 		update_mouse_delta(SWW);
+		MouseReport->X = -2 - mouse_delta;
 	} else if (direction & _BV(SWE)) {
-		MouseReport->X = 2 + mouse_delta;
 		update_mouse_delta(SWE);
+		MouseReport->X = 2 + mouse_delta;
 	}
 
 	/* Check clicks */
@@ -255,11 +263,9 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 
 /* Update magnitude of mouse movement with given direction */
 void update_mouse_delta(uint8_t dir) {
-	/* If direction maintained, increase mouse_delta (capped at 5) */
-	if (direction == dir) {
-		if (mouse_delta + 1 > 5) {
-			mouse_delta = 5;
-		} else {
+	/* If direction maintained, increase mouse_delta (capped at 2) */
+	if (direction & _BV(dir)) {
+		if (mouse_delta < 2) {
 			mouse_delta++;
 		}
 	} else {
