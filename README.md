@@ -14,9 +14,10 @@ Current functionality includes:
 - Left-clicking using a (very) short press of the center switch
 - Right-clicking using a (normal/long) press of the center switch
 
-Ideas for extensions:
+Improvement ideas:
 - Scrolling
 - Improve clicking (left clicks frequently mistaken as right clicks, perhaps due to scheduling times in os_add_task)
 - Add a timer to reset delta after stationary time, for more natural navigation
+- Detach from the LUFA DMBS makefile system, and use Klaus' makefile for the FortunaOS
 
 
