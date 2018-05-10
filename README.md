@@ -1,6 +1,9 @@
 # LaMouse
 This repository adds the LUFA library to FortunaOS (for the 'La Fortuna' board) and demonstrates use of the La Fortuna as a USB mouse.
 
+## Build me
+To build this project, use 'make' in the top-level directory. The makefile includes a dfu-programmer command and so your LaFortuna board must be connected and reset (allowing upload) to complete entirely. 
+
 ## LUFA (Lightweight USB Framework for AVRs)
 The LUFA library provides a USB framework for AVR microcontrollers. Support for a wide variety of devices from mice to MIDI is included, along with a series of prepared demos.
 
